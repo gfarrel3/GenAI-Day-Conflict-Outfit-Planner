@@ -22,6 +22,33 @@ type Forecast = {
 
 const SOUTH_BEND_COORDINATES = { latitude: 41.68, longitude: -86.25 };
 
+function BodyZone({
+  zone,
+  icon,
+  label,
+  badge,
+  children,
+}: {
+  zone: 'head' | 'torso' | 'legs' | 'shoes';
+  icon: string;
+  label: string;
+  badge?: string;
+  children?: ReactNode;
+}) {
+  return (
+    <div className={`body-zone body-zone-${zone}`}>
+      <div className="body-zone-icon" aria-hidden="true">{icon}</div>
+      <div className="body-zone-content">
+        <div className="body-zone-heading">
+          <strong className="body-zone-label">{label}</strong>
+          {badge && <span className="body-zone-badge">{badge}</span>}
+        </div>
+        <div className="body-zone-copy">{children}</div>
+      </div>
+    </div>
+  );
+}
+
 function Home() {
   const [city, setCity] = useState('South Bend, IN');
   const [events, setEvents] = useState('');
@@ -174,6 +201,13 @@ function Home() {
         activeWeather.rain !== null && activeWeather.rain > 40 ? 'Bring a rain jacket or umbrella.' : null,
       ].filter((line): line is string => line !== null)
     : [];
+  const weatherIcon = activeWeather
+    ? activeWeather.high !== null && activeWeather.high > 85
+      ? '☀️'
+      : activeWeather.low !== null && activeWeather.low < 50
+        ? '🧥'
+        : '🌤️'
+    : '🌤️';
 
   return (
     <main className="planner-shell">
@@ -268,56 +302,86 @@ function Home() {
           <section className="plan-card" aria-label="Your outfit plan">
             <div className="plan-topline">
               <div><p className="plan-kicker">YOUR PLAN FOR TOMORROW</p><h2>{planTitle}</h2></div>
-              <div className="weather-pill"><span className="weather-dot" />{inputSource === 'sample' ? sampleWeather?.detail : forecast ? `${forecast.high}°F high · ${forecast.low}°F low` : forecastLoading ? 'Forecast loading' : 'Forecast unavailable'}</div>
+              <div className="weather-pill"><span className="weather-dot" />{planType !== 'clash' && <span className="weather-pill-icon" aria-hidden="true">{weatherIcon}</span>}{inputSource === 'sample' ? sampleWeather?.detail : forecast ? `${forecast.high}°F high · ${forecast.low}°F low` : forecastLoading ? 'Forecast loading' : 'Forecast unavailable'}</div>
             </div>
             {notice && <div className="notice" role="status">This prototype only has prewritten plans for a few example days. Try one of the example buttons.</div>}
             <div className={`plan-content ${editing ? 'is-editing' : ''}`} contentEditable={editing} suppressContentEditableWarning>
               {planType === 'clash' ? (
                 <>
-                  <div className="outfit-summary"><span className="mini-label">BOTTOMS</span><p>Lightweight professional long pants—dark chinos or tailored lightweight trousers—that can get dirty and meet shop requirements. Shop rules call for long pants, but heavy pants are miserable in the heat. The same pants work all day, so no change is needed.</p></div>
-                  <div className="outfit-summary"><span className="mini-label">TOP</span><p>A nice professional top, such as a blouse or button-up. The interview is on Zoom, so only the top half is on camera.</p></div>
-                  <div className="outfit-summary"><span className="mini-label">SHOES</span><p>Closed-toe, comfortable, and clean enough to pass as professional.</p></div>
-                  <div className="conflict-flag"><span>CONFLICT TO PLAN AROUND</span><strong>Shop safety and heat vs. interview polish. One pair of pants and a protected top mean no full outfit change.</strong></div>
-                  <p className="plan-detail">Weather is hot, so choose light fabrics.</p>
+                  <div className="body-zones">
+                    <BodyZone zone="head" icon="🥽" label="Head" badge="Shop requirement">
+                      <p>Hair tied back, safety glasses in the shop (shop requirement).</p>
+                    </BodyZone>
+                    <BodyZone zone="torso" icon="👚" label="Torso">
+                      <p>A nice professional top, such as a blouse or button-up. The interview is on Zoom, so only the top half is on camera.</p>
+                      <p>Bring a throwaway t-shirt to wear over the nice top while sanding to protect it; take it off before the Zoom interview.</p>
+                    </BodyZone>
+                    <BodyZone zone="legs" icon="👖" label="Legs">
+                      <p>Lightweight professional long pants—dark chinos or tailored lightweight trousers—that can get dirty and meet shop requirements. Shop rules call for long pants, but heavy pants are miserable in the heat. The same pants work all day, so no change is needed.</p>
+                    </BodyZone>
+                    <BodyZone zone="shoes" icon="👟" label="Shoes">
+                      <p>Closed-toe, comfortable, and clean enough to pass as professional.</p>
+                    </BodyZone>
+                  </div>
+                  <div className="conflict-flag"><span><span aria-hidden="true">⚠️</span> CONFLICT TO PLAN AROUND</span><strong>Shop safety and heat vs. interview polish. One pair of pants and a protected top mean no full outfit change.</strong></div>
+                  <p className="plan-detail"><span className="plan-detail-icon" aria-hidden="true">{weatherIcon}</span><span>Weather is hot, so choose light fabrics.</span></p>
                   <ul className="action-list">
-                    <li><b>Bring</b><span>Bring a throwaway t-shirt to wear over the nice top while sanding to protect it; take it off before the Zoom interview.</span></li>
+                    <li><b><span aria-hidden="true">🎒</span> Bring</b><span>Bring a throwaway t-shirt to wear over the nice top while sanding to protect it; take it off before the Zoom interview.</span></li>
                     <li><b>Swap</b><span>No full outfit change is needed. Keep the same pants on all day and remove the throwaway t-shirt before the interview.</span></li>
                     <li><b>Layer</b><span>Use light fabrics underneath the protective t-shirt to stay more comfortable in the heat.</span></li>
                   </ul>
-                  <div className="assumptions"><span className="assumptions-label">ASSUMPTIONS</span><p className="assumption">The shop requires long pants and the Zoom interview calls for a professional top.</p></div>
+                  <div className="assumptions"><span className="assumptions-label"><span aria-hidden="true">💡</span> ASSUMPTIONS</span><p className="assumption">The shop requires long pants and the Zoom interview calls for a professional top.</p></div>
                 </>
               ) : planType === 'class' ? (
                 <>
-                  <div className="outfit-summary"><span className="mini-label">THE OUTFIT</span><p>Jeans or chinos, a light top, and comfortable shoes for a full day of class and library time.</p></div>
+                  <div className="body-zones">
+                    <BodyZone zone="head" icon="🥽" label="Head"><p>Nothing special needed.</p></BodyZone>
+                    <BodyZone zone="torso" icon="👚" label="Torso"><p>a light top,</p></BodyZone>
+                    <BodyZone zone="legs" icon="👖" label="Legs"><p>Jeans or chinos,</p></BodyZone>
+                    <BodyZone zone="shoes" icon="👟" label="Shoes"><p>and comfortable shoes for a full day of class and library time.</p></BodyZone>
+                  </div>
                   <div className="calm-note">No conflict was flagged for this schedule.</div>
                   <ul className="action-list">
-                    <li><b>Bring</b><span>A water bottle for your class-to-library stretch.</span></li>
+                    <li><b><span aria-hidden="true">🎒</span> Bring</b><span>A water bottle for your class-to-library stretch.</span></li>
                     <li><b>Swap</b><span>No outfit change needed for the events you listed.</span></li>
                     <li><b>Layer</b><span>Bring a light layer for cool classrooms or library spaces.</span></li>
                   </ul>
-                  <div className="assumptions"><span className="assumptions-label">ASSUMPTIONS</span><p className="assumption">Class and library time are casual, indoor activities.</p></div>
+                  <div className="assumptions"><span className="assumptions-label"><span aria-hidden="true">💡</span> ASSUMPTIONS</span><p className="assumption">Class and library time are casual, indoor activities.</p></div>
                 </>
               ) : planType === 'vague' ? (
                 <>
-                  <div className="outfit-summary"><span className="mini-label">THE OUTFIT</span><p>Start with a comfortable business-casual base and layer for a 42°F morning warming to 70°F in the afternoon.</p></div>
+                  <div className="body-zones">
+                    <BodyZone zone="head" icon="🥽" label="Head"><p>Nothing special needed.</p></BodyZone>
+                    <BodyZone zone="torso" icon="👚" label="Torso">
+                      <p>Start with a comfortable business-casual base and layer for a 42°F morning warming to 70°F in the afternoon.</p>
+                      <p>Wear a light jacket or cardigan you can remove as the day warms up.</p>
+                    </BodyZone>
+                    <BodyZone zone="legs" icon="👖" label="Legs"><p>Comfortable, business casual</p></BodyZone>
+                    <BodyZone zone="shoes" icon="👟" label="Shoes"><p>Comfortable, business casual</p></BodyZone>
+                  </div>
                   <div className="confidence-line"><span>MEETING</span><strong>Low confidence</strong></div>
                   <ul className="action-list">
-                    <li><b>Bring</b><span>Carry a light jacket or cardigan for the cool morning.</span></li>
+                    <li><b><span aria-hidden="true">🎒</span> Bring</b><span>Carry a light jacket or cardigan for the cool morning.</span></li>
                     <li><b>Swap</b><span>No change is needed unless the meeting has a specific dress code.</span></li>
                     <li><b>Layer</b><span>Wear a light jacket or cardigan you can remove as the day warms up.</span></li>
                   </ul>
-                  <div className="assumptions"><span className="assumptions-label">ASSUMPTIONS</span><p className="assumption">I assumed business casual since 'meeting' gives no detail. Edit if wrong.</p></div>
+                  <div className="assumptions"><span className="assumptions-label"><span aria-hidden="true">💡</span> ASSUMPTIONS</span><p className="assumption">I assumed business casual since 'meeting' gives no detail. Edit if wrong.</p></div>
                 </>
               ) : (
                 <>
-                  <div className="outfit-summary"><span className="mini-label">THE OUTFIT</span><p>Neutral business-casual layers with long pants: a versatile base that can work across a professional day.</p></div>
+                  <div className="body-zones">
+                    <BodyZone zone="head" icon="🥽" label="Head"><p>Nothing special needed.</p></BodyZone>
+                    <BodyZone zone="torso" icon="👚" label="Torso"><p>Neutral business-casual layers: a versatile base that can work across a professional day.</p></BodyZone>
+                    <BodyZone zone="legs" icon="👖" label="Legs"><p>Long pants.</p></BodyZone>
+                    <BodyZone zone="shoes" icon="👟" label="Shoes" />
+                  </div>
                   <div className="confidence-line"><span>GENERAL PLAN</span><strong>Low confidence</strong></div>
                   <ul className="action-list">
-                    <li><b>Bring</b><span>Keep a light layer handy in case you move between indoor and outdoor spaces.</span></li>
+                    <li><b><span aria-hidden="true">🎒</span> Bring</b><span>Keep a light layer handy in case you move between indoor and outdoor spaces.</span></li>
                     <li><b>Swap</b><span>No specific change is indicated by the events you listed.</span></li>
                     <li><b>Layer</b><span>Use a removable layer to adjust to the setting and temperature.</span></li>
                   </ul>
-                  <div className="assumptions"><span className="assumptions-label">ASSUMPTIONS</span><p className="assumption">I couldn't tell what these events require, so I assumed a general professional setting.</p></div>
+                  <div className="assumptions"><span className="assumptions-label"><span aria-hidden="true">💡</span> ASSUMPTIONS</span><p className="assumption">I couldn't tell what these events require, so I assumed a general professional setting.</p></div>
                 </>
               )}
               {preferences.trim() && (
@@ -327,7 +391,7 @@ function Home() {
                   <small>In the full product, the AI would factor this into the plan. (Simulated in this prototype.)</small>
                 </div>
               )}
-              <div className="safety-note">{planType === 'clash' ? 'Posted shop safety requirements override these suggestions.' : 'Posted safety requirements for any workshop or lab override these suggestions.'}</div>
+              <div className="safety-note"><span aria-hidden="true">🦺</span><span>{planType === 'clash' ? 'Posted shop safety requirements override these suggestions.' : 'Posted safety requirements for any workshop or lab override these suggestions.'}</span></div>
             </div>
             <div className="plan-controls">
               {!editing && <button className="accept-button" onClick={() => { setAccepted(true); setRejecting(false); }}>Accept</button>}
