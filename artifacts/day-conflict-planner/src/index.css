@@ -500,23 +500,8 @@
   box-shadow: 0 12px 38px rgba(55, 62, 50, .055);
 }
 .planner-card { padding: 25px 29px 26px; }
-.form-heading, .plan-topline { display: flex; align-items: flex-start; gap: 14px; }
-.form-heading { margin-bottom: 22px; }
-.step-number {
-  display: flex;
-  width: 34px;
-  height: 34px;
-  flex: 0 0 34px;
-  align-items: center;
-  justify-content: center;
-  border-radius: 10px;
-  background: #eaf0e9;
-  color: #55735f;
-  font-family: 'Manrope', sans-serif;
-  font-size: 12px;
-  font-weight: 800;
-}
-.form-heading h2, .plan-topline h2 {
+.plan-topline { display: flex; align-items: flex-start; gap: 14px; }
+.plan-topline h2 {
   margin: 1px 0 3px;
   color: #26342f;
   font-family: 'Manrope', sans-serif;
@@ -524,7 +509,6 @@
   font-weight: 750;
   letter-spacing: -.025em;
 }
-.form-heading p { margin: 0; color: #788078; font-size: 13px; }
 .field-label, .reject-panel label {
   display: block;
   margin: 0 0 7px;
@@ -548,20 +532,33 @@ input.text-input { height: 43px; padding: 0 13px; }
 textarea.text-input { display: block; resize: vertical; padding: 12px 13px; line-height: 1.5; }
 .event-input { min-height: 88px; }
 .text-input::placeholder { color: #9b9d95; }
-.examples { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; margin: 13px 0 17px; }
-.examples-label { margin-right: 2px; color: #788078; font-size: 11px; font-weight: 600; }
-.example-button {
-  min-height: 29px;
-  padding: 5px 10px;
+.sync-note { margin: 7px 0 0; color: #85877e; font-size: 11px; line-height: 1.45; }
+.examples { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 13px 0 0; }
+.examples-label { color: #788078; font-size: 11px; font-weight: 600; }
+.example-select {
+  min-height: 32px;
+  max-width: 100%;
+  padding: 5px 29px 5px 10px;
   border: 1px solid #e2e2d8;
-  border-radius: 20px;
+  border-radius: 8px;
   background: #f7f7f1;
   color: #526258;
   font-size: 11px;
   font-weight: 600;
-  transition: background .18s ease, border-color .18s ease;
 }
-.example-button:hover { border-color: #9aaf9a; background: #edf2eb; }
+.preferences-toggle {
+  display: inline-block;
+  margin: 14px 0 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #587664;
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.preferences-panel { margin-top: 12px; }
 .submit-button, .accept-button {
   display: inline-flex;
   align-items: center;
@@ -578,7 +575,6 @@ textarea.text-input { display: block; resize: vertical; padding: 12px 13px; line
   transition: background .18s ease, transform .18s ease;
 }
 .submit-button:hover, .accept-button:hover { background: #345a45; transform: translateY(-1px); }
-.submit-button:disabled { cursor: wait; background: #819989; transform: none; }
 .submit-button span { font-size: 17px; }
 .error-message { margin: 8px 0 0; color: #a33c32; font-size: 12px; font-weight: 600; }
 .plan-card { margin-top: 19px; padding: 24px 29px 22px; animation: plan-enter .28s ease both; }
@@ -671,19 +667,7 @@ textarea.text-input { display: block; resize: vertical; padding: 12px 13px; line
 .feedback-input { min-height: 70px; }
 .retry-button { margin-top: 9px; }
 .simulation-message { margin: 9px 0 0; color: #68766b; font-size: 12px; }
-.location-button { margin-top: 9px; }
-.subsequent-step { margin: 26px 0 16px; }
-.preferences-step { margin-top: 22px; }
-.calendar-note { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; margin-top: 10px; }
-.calendar-note small { color: #85877e; font-size: 10px; line-height: 1.4; }
-.quiet-button:disabled {
-  cursor: not-allowed;
-  border-color: #e7e5dc;
-  background: #f3f2ec;
-  color: #97988f;
-}
-.quiet-button:disabled:hover { background: #f3f2ec; }
-.submit-button { margin-top: 17px; }
+.submit-button { width: 100%; min-height: 50px; margin-top: 17px; }
 .forecast-card {
   margin-top: 17px;
   padding: 20px 25px;
@@ -736,9 +720,6 @@ textarea.text-input { display: block; resize: vertical; padding: 12px 13px; line
   .planner-shell { padding: 28px 14px 42px; }
   .page-header { margin-bottom: 19px; }
   .planner-card, .plan-card { padding: 20px 17px; border-radius: 14px; }
-  .form-heading { gap: 11px; }
-  .form-heading h2 { font-size: 17px; }
-  .form-heading p { font-size: 12px; }
   .plan-topline { gap: 10px; }
   .plan-topline h2 { font-size: 17px; }
   .weather-pill { margin: 7px 0 0 44px; }

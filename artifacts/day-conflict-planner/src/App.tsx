@@ -20,16 +20,18 @@ type Forecast = {
   detail: string;
 };
 
+const SOUTH_BEND_COORDINATES = { latitude: 41.68, longitude: -86.25 };
+
 function Home() {
-  const [city, setCity] = useState('South Bend, IN (Notre Dame)');
+  const [city, setCity] = useState('South Bend, IN');
   const [events, setEvents] = useState('');
   const [preferences, setPreferences] = useState('');
-  const [coordinates, setCoordinates] = useState({ latitude: 41.68, longitude: -86.25 });
+  const [preferencesOpen, setPreferencesOpen] = useState(false);
+  const [selectedExample, setSelectedExample] = useState('');
   const [inputSource, setInputSource] = useState<'live' | 'sample'>('live');
   const [sampleWeather, setSampleWeather] = useState<Forecast | null>(null);
   const [forecast, setForecast] = useState<Forecast | null>(null);
   const [forecastLoading, setForecastLoading] = useState(false);
-  const [locationLoading, setLocationLoading] = useState(false);
   const [planType, setPlanType] = useState<'class' | 'clash' | 'vague' | 'generic' | null>(null);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState(false);
@@ -41,16 +43,19 @@ function Home() {
 
   const examples = [
     {
+      id: 'class',
       label: 'Class-only day',
       events: 'Class 10-11:15, Library 1-3',
       weather: { high: 68, low: null, rain: 0, detail: '68°F · Mild · No rain' },
     },
     {
+      id: 'clash',
       label: 'Clash day',
       events: 'Workshop 10-12, Lenovo interview 2:00, career fair 4:30',
       weather: { high: 91, low: null, rain: 0, detail: '91°F · Hot · No rain' },
     },
     {
+      id: 'vague',
       label: 'Weather swing + vague event',
       events: 'Class 9-10, meeting 1:00',
       weather: { high: 70, low: 42, rain: null, detail: '42°F morning · 70°F afternoon' },
@@ -58,12 +63,22 @@ function Home() {
   ];
 
   function loadExample(value: string) {
-    const example = examples.find((item) => item.events === value);
-    setCity('South Bend, IN (Notre Dame)');
-    setCoordinates({ latitude: 41.68, longitude: -86.25 });
-    setEvents(value);
+    const example = examples.find((item) => item.id === value);
+    if (!example) {
+      setSelectedExample('');
+      setInputSource('live');
+      setSampleWeather(null);
+      setForecast(null);
+      setPlanType(null);
+      setEvents('');
+      setError('');
+      return;
+    }
+    setCity('South Bend, IN');
+    setEvents(example.events);
+    setSelectedExample(example.id);
     setInputSource('sample');
-    setSampleWeather(example?.weather ?? null);
+    setSampleWeather(example.weather);
     setForecast(null);
     setForecastLoading(false);
     setError('');
@@ -71,31 +86,6 @@ function Home() {
     setNotice(false);
     setAccepted(false);
     setRejecting(false);
-  }
-
-  function useMyLocation() {
-    const fallback = () => {
-      setCity('South Bend, IN (Notre Dame)');
-      setCoordinates({ latitude: 41.68, longitude: -86.25 });
-      setLocationLoading(false);
-    };
-    if (!navigator.geolocation) {
-      fallback();
-      return;
-    }
-    setLocationLoading(true);
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        setCity('Current location');
-        setCoordinates({
-          latitude: position.coords.latitude,
-          longitude: position.coords.longitude,
-        });
-        setLocationLoading(false);
-      },
-      fallback,
-      { enableHighAccuracy: false, timeout: 10000 },
-    );
   }
 
   async function fetchForecast(latitude: number, longitude: number) {
@@ -140,7 +130,6 @@ function Home() {
 
   async function submitPlan(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (locationLoading) return;
     if (!events.trim()) {
       setError('Please paste at least one event with a time.');
       setPlanType(null);
@@ -164,7 +153,7 @@ function Home() {
       setForecastLoading(false);
     } else {
       setForecastLoading(true);
-      await fetchForecast(coordinates.latitude, coordinates.longitude);
+      await fetchForecast(SOUTH_BEND_COORDINATES.latitude, SOUTH_BEND_COORDINATES.longitude);
     }
   }
 
@@ -198,43 +187,56 @@ function Home() {
 
         <section className="planner-card" aria-label="Plan your outfit">
           <form onSubmit={submitPlan}>
-            <div className="form-heading">
-              <div className="step-number">01</div>
-              <div><h2>Location</h2></div>
-            </div>
             <label className="field-label" htmlFor="city">City</label>
             <input id="city" className="text-input" value={city} onChange={(e) => setCity(e.target.value)} />
-            <button className="quiet-button location-button" type="button" onClick={useMyLocation} disabled={locationLoading}>
-              {locationLoading ? 'Finding your location…' : 'Use my location'}
-            </button>
-            <div className="form-heading subsequent-step">
-              <div className="step-number">02</div>
-              <div><h2>Your day</h2></div>
-            </div>
             <label className="field-label events-label" htmlFor="events">Paste tomorrow's events with times</label>
-            <textarea id="events" className="text-input event-input" placeholder="Workshop 10-12, Lenovo interview 2:00, career fair 4:30" value={events} onChange={(e) => { setEvents(e.target.value); setInputSource('live'); }} />
-            <div className="calendar-note">
-              <button className="quiet-button" type="button" disabled>Connect Google Calendar (coming soon)</button>
-              <small>Not available in this prototype. Paste your events instead.</small>
-            </div>
+            <textarea
+              id="events"
+              className="text-input event-input"
+              placeholder="Workshop 10-12, Lenovo interview 2:00, career fair 4:30"
+              value={events}
+              onChange={(e) => {
+                setEvents(e.target.value);
+                setInputSource('live');
+                setSelectedExample('');
+              }}
+            />
+            <p className="sync-note">Calendar and app sync coming soon. For now, paste your events.</p>
             {error && <p className="error-message" role="alert">{error}</p>}
             <div className="examples">
-              <span className="examples-label">Try an example</span>
-              {examples.map((example) => <button key={example.label} className="example-button" type="button" onClick={() => loadExample(example.events)}>{example.label}</button>)}
+              <label className="examples-label" htmlFor="example-select">Try an example</label>
+              <select
+                id="example-select"
+                className="example-select"
+                value={selectedExample}
+                onChange={(e) => loadExample(e.target.value)}
+              >
+                <option value="">Choose an example</option>
+                {examples.map((example) => <option key={example.id} value={example.id}>{example.label}</option>)}
+              </select>
             </div>
-            <div className="form-heading subsequent-step preferences-step">
-              <div className="step-number">03</div>
-              <div><h2>Preferences (optional)</h2></div>
-            </div>
-            <label className="field-label" htmlFor="preferences">Anything to keep in mind?</label>
-            <input
-              id="preferences"
-              className="text-input"
-              placeholder="e.g., I run hot, no heels, need closed-toe shoes"
-              value={preferences}
-              onChange={(e) => setPreferences(e.target.value)}
-            />
-            <button className="submit-button" type="submit" disabled={locationLoading}>Generate my outfit plan <span aria-hidden="true">→</span></button>
+            <button
+              className="preferences-toggle"
+              type="button"
+              aria-expanded={preferencesOpen}
+              aria-controls="preferences-panel"
+              onClick={() => setPreferencesOpen((open) => !open)}
+            >
+              Add preferences (optional)
+            </button>
+            {preferencesOpen && (
+              <div id="preferences-panel" className="preferences-panel">
+                <label className="field-label" htmlFor="preferences">Preferences</label>
+                <input
+                  id="preferences"
+                  className="text-input"
+                  placeholder="e.g., I run hot, no heels, need closed-toe shoes"
+                  value={preferences}
+                  onChange={(e) => setPreferences(e.target.value)}
+                />
+              </div>
+            )}
+            <button className="submit-button" type="submit">Generate my outfit plan <span aria-hidden="true">→</span></button>
           </form>
         </section>
 
@@ -272,15 +274,17 @@ function Home() {
             <div className={`plan-content ${editing ? 'is-editing' : ''}`} contentEditable={editing} suppressContentEditableWarning>
               {planType === 'clash' ? (
                 <>
-                  <div className="outfit-summary"><span className="mini-label">THE BASE</span><p>Lightweight long pants, a breathable top that works in the shop and still looks professional, and closed-toe shoes that can pass for professional.</p></div>
-                  <div className="conflict-flag"><span>CONFLICT TO PLAN AROUND</span><strong>Shop safety vs. interview polish</strong></div>
-                  <p className="plan-detail">It will be hot. Choose breathable fabrics and remove your blazer between events.</p>
+                  <div className="outfit-summary"><span className="mini-label">BOTTOMS</span><p>Lightweight professional long pants—dark chinos or tailored lightweight trousers—that can get dirty and meet shop requirements. Shop rules call for long pants, but heavy pants are miserable in the heat. The same pants work all day, so no change is needed.</p></div>
+                  <div className="outfit-summary"><span className="mini-label">TOP</span><p>A nice professional top, such as a blouse or button-up. The interview is on Zoom, so only the top half is on camera.</p></div>
+                  <div className="outfit-summary"><span className="mini-label">SHOES</span><p>Closed-toe, comfortable, and clean enough to pass as professional.</p></div>
+                  <div className="conflict-flag"><span>CONFLICT TO PLAN AROUND</span><strong>Shop safety and heat vs. interview polish. One pair of pants and a protected top mean no full outfit change.</strong></div>
+                  <p className="plan-detail">Weather is hot, so choose light fabrics.</p>
                   <ul className="action-list">
-                    <li><b>Bring</b><span>Pack a throwaway t-shirt to layer over your outfit during sanding.</span></li>
-                    <li><b>Swap</b><span>Change into a blazer or nicer top after the shop; there is no time to go home.</span></li>
-                    <li><b>Layer</b><span>Keep the blazer in your bag until the interview so you stay comfortable in the heat.</span></li>
+                    <li><b>Bring</b><span>Bring a throwaway t-shirt to wear over the nice top while sanding to protect it; take it off before the Zoom interview.</span></li>
+                    <li><b>Swap</b><span>No full outfit change is needed. Keep the same pants on all day and remove the throwaway t-shirt before the interview.</span></li>
+                    <li><b>Layer</b><span>Use light fabrics underneath the protective t-shirt to stay more comfortable in the heat.</span></li>
                   </ul>
-                  <div className="assumptions"><span className="assumptions-label">ASSUMPTIONS</span><p className="assumption">The workshop includes sanding and the interview calls for a polished look.</p></div>
+                  <div className="assumptions"><span className="assumptions-label">ASSUMPTIONS</span><p className="assumption">The shop requires long pants and the Zoom interview calls for a professional top.</p></div>
                 </>
               ) : planType === 'class' ? (
                 <>
@@ -323,7 +327,7 @@ function Home() {
                   <small>In the full product, the AI would factor this into the plan. (Simulated in this prototype.)</small>
                 </div>
               )}
-              <div className="safety-note">Posted safety requirements for any workshop or lab override these suggestions.</div>
+              <div className="safety-note">{planType === 'clash' ? 'Posted shop safety requirements override these suggestions.' : 'Posted safety requirements for any workshop or lab override these suggestions.'}</div>
             </div>
             <div className="plan-controls">
               {!editing && <button className="accept-button" onClick={() => { setAccepted(true); setRejecting(false); }}>Accept</button>}
