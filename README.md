@@ -16,7 +16,7 @@ The user can **Accept** the plan, **Edit** it in place, or **Reject** it and ask
 
 ## Try the Prototype
 
-Open: **[PASTE YOUR REPLIT PUBLISHED LINK HERE]**
+Open: Replit[https://day-conflict-outfit-planner.replit.app]
 
 1. Pick an example from the "Try an example" dropdown (or paste your own events, such as `Workshop 10-12, Lenovo interview 2:00`).
 2. Click **Generate my outfit plan**.
