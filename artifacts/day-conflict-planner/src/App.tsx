@@ -13,9 +13,23 @@ import {
 
 const queryClient = new QueryClient();
 
+type Forecast = {
+  high: number | null;
+  low: number | null;
+  rain: number | null;
+  detail: string;
+};
+
 function Home() {
-  const [city, setCity] = useState('South Bend, IN');
+  const [city, setCity] = useState('South Bend, IN (Notre Dame)');
   const [events, setEvents] = useState('');
+  const [preferences, setPreferences] = useState('');
+  const [coordinates, setCoordinates] = useState({ latitude: 41.68, longitude: -86.25 });
+  const [inputSource, setInputSource] = useState<'live' | 'sample'>('live');
+  const [sampleWeather, setSampleWeather] = useState<Forecast | null>(null);
+  const [forecast, setForecast] = useState<Forecast | null>(null);
+  const [forecastLoading, setForecastLoading] = useState(false);
+  const [locationLoading, setLocationLoading] = useState(false);
   const [planType, setPlanType] = useState<'class' | 'clash' | 'vague' | 'generic' | null>(null);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState(false);
@@ -26,14 +40,32 @@ function Home() {
   const [feedback, setFeedback] = useState('');
 
   const examples = [
-    { label: 'Class-only day', events: 'Class 10-11:15, Library 1-3' },
-    { label: 'Clash day', events: 'Workshop 10-12, Lenovo interview 2:00, career fair 4:30' },
-    { label: 'Weather swing + vague event', events: 'Class 9-10, meeting 1:00' },
+    {
+      label: 'Class-only day',
+      events: 'Class 10-11:15, Library 1-3',
+      weather: { high: 68, low: null, rain: 0, detail: '68°F · Mild · No rain' },
+    },
+    {
+      label: 'Clash day',
+      events: 'Workshop 10-12, Lenovo interview 2:00, career fair 4:30',
+      weather: { high: 91, low: null, rain: 0, detail: '91°F · Hot · No rain' },
+    },
+    {
+      label: 'Weather swing + vague event',
+      events: 'Class 9-10, meeting 1:00',
+      weather: { high: 70, low: 42, rain: null, detail: '42°F morning · 70°F afternoon' },
+    },
   ];
 
   function loadExample(value: string) {
-    setCity('South Bend, IN');
+    const example = examples.find((item) => item.events === value);
+    setCity('South Bend, IN (Notre Dame)');
+    setCoordinates({ latitude: 41.68, longitude: -86.25 });
     setEvents(value);
+    setInputSource('sample');
+    setSampleWeather(example?.weather ?? null);
+    setForecast(null);
+    setForecastLoading(false);
     setError('');
     setPlanType(null);
     setNotice(false);
@@ -41,8 +73,74 @@ function Home() {
     setRejecting(false);
   }
 
-  function submitPlan(event: FormEvent<HTMLFormElement>) {
+  function useMyLocation() {
+    const fallback = () => {
+      setCity('South Bend, IN (Notre Dame)');
+      setCoordinates({ latitude: 41.68, longitude: -86.25 });
+      setLocationLoading(false);
+    };
+    if (!navigator.geolocation) {
+      fallback();
+      return;
+    }
+    setLocationLoading(true);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setCity('Current location');
+        setCoordinates({
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+        });
+        setLocationLoading(false);
+      },
+      fallback,
+      { enableHighAccuracy: false, timeout: 10000 },
+    );
+  }
+
+  async function fetchForecast(latitude: number, longitude: number) {
+    const url = new URL('https://api.open-meteo.com/v1/forecast');
+    url.search = new URLSearchParams({
+      latitude: String(latitude),
+      longitude: String(longitude),
+      daily: 'temperature_2m_max,temperature_2m_min,precipitation_probability_max',
+      temperature_unit: 'fahrenheit',
+      timezone: 'auto',
+      forecast_days: '2',
+    }).toString();
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), 12000);
+    try {
+      const response = await fetch(url.toString(), { signal: controller.signal });
+      if (!response.ok) throw new Error('Forecast request failed');
+      const payload: unknown = await response.json();
+      if (!payload || typeof payload !== 'object' || !('daily' in payload)) {
+        throw new Error('Forecast data unavailable');
+      }
+      const daily = (payload as { daily?: Record<string, unknown> }).daily;
+      const highs = daily?.temperature_2m_max;
+      const lows = daily?.temperature_2m_min;
+      const rains = daily?.precipitation_probability_max;
+      const isNumber = (value: unknown): value is number =>
+        typeof value === 'number' && Number.isFinite(value);
+      if (
+        !Array.isArray(highs) || !Array.isArray(lows) || !Array.isArray(rains) ||
+        !isNumber(highs[1]) || !isNumber(lows[1]) || !isNumber(rains[1])
+      ) {
+        throw new Error('Forecast data unavailable');
+      }
+      setForecast({ high: highs[1], low: lows[1], rain: rains[1], detail: '' });
+    } catch {
+      setForecast(null);
+    } finally {
+      window.clearTimeout(timeout);
+      setForecastLoading(false);
+    }
+  }
+
+  async function submitPlan(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (locationLoading) return;
     if (!events.trim()) {
       setError('Please paste at least one event with a time.');
       setPlanType(null);
@@ -60,9 +158,33 @@ function Home() {
     setEditing(false);
     setRejecting(false);
     setRegenerated(false);
+    setForecast(null);
+    if (inputSource === 'sample') {
+      setForecast(sampleWeather);
+      setForecastLoading(false);
+    } else {
+      setForecastLoading(true);
+      await fetchForecast(coordinates.latitude, coordinates.longitude);
+    }
   }
 
   const planTitle = planType === 'clash' ? 'A day with a quick change' : planType === 'class' ? 'A comfortable class day' : planType === 'vague' ? 'A flexible day, with one question mark' : 'A dependable everyday plan';
+  const activeWeather = inputSource === 'sample' ? sampleWeather : forecast;
+  const weatherLabel = inputSource === 'sample' ? 'Sample weather for this example.' : 'Live forecast';
+  const weatherLines = activeWeather
+    ? [
+        activeWeather.high !== null ? `High ${activeWeather.high}°F` : 'High: Not specified',
+        activeWeather.low !== null ? `Low ${activeWeather.low}°F` : 'Low: Not specified',
+        activeWeather.rain !== null ? `Rain chance ${activeWeather.rain}%` : 'Rain chance: Not specified',
+      ]
+    : [];
+  const recommendations = activeWeather
+    ? [
+        activeWeather.high !== null && activeWeather.high > 85 ? 'Choose breathable fabrics' : null,
+        activeWeather.low !== null && activeWeather.low < 50 ? 'Bring a layer for the morning' : null,
+        activeWeather.rain !== null && activeWeather.rain > 40 ? 'Bring a rain jacket or umbrella.' : null,
+      ].filter((line): line is string => line !== null)
+    : [];
 
   return (
     <main className="planner-shell">
@@ -78,27 +200,73 @@ function Home() {
           <form onSubmit={submitPlan}>
             <div className="form-heading">
               <div className="step-number">01</div>
-              <div><h2>Start with tomorrow</h2><p>Share your city and the events on your calendar.</p></div>
+              <div><h2>Location</h2></div>
             </div>
             <label className="field-label" htmlFor="city">City</label>
             <input id="city" className="text-input" value={city} onChange={(e) => setCity(e.target.value)} />
+            <button className="quiet-button location-button" type="button" onClick={useMyLocation} disabled={locationLoading}>
+              {locationLoading ? 'Finding your location…' : 'Use my location'}
+            </button>
+            <div className="form-heading subsequent-step">
+              <div className="step-number">02</div>
+              <div><h2>Your day</h2></div>
+            </div>
             <label className="field-label events-label" htmlFor="events">Paste tomorrow's events with times</label>
-            <textarea id="events" className="text-input event-input" placeholder="Workshop 10-12, Lenovo interview 2:00, career fair 4:30" value={events} onChange={(e) => setEvents(e.target.value)} />
+            <textarea id="events" className="text-input event-input" placeholder="Workshop 10-12, Lenovo interview 2:00, career fair 4:30" value={events} onChange={(e) => { setEvents(e.target.value); setInputSource('live'); }} />
+            <div className="calendar-note">
+              <button className="quiet-button" type="button" disabled>Connect Google Calendar (coming soon)</button>
+              <small>Not available in this prototype. Paste your events instead.</small>
+            </div>
             {error && <p className="error-message" role="alert">{error}</p>}
             <div className="examples">
               <span className="examples-label">Try an example</span>
               {examples.map((example) => <button key={example.label} className="example-button" type="button" onClick={() => loadExample(example.events)}>{example.label}</button>)}
             </div>
-            <button className="submit-button" type="submit">Get my outfit plan <span aria-hidden="true">→</span></button>
+            <div className="form-heading subsequent-step preferences-step">
+              <div className="step-number">03</div>
+              <div><h2>Preferences (optional)</h2></div>
+            </div>
+            <label className="field-label" htmlFor="preferences">Anything to keep in mind?</label>
+            <input
+              id="preferences"
+              className="text-input"
+              placeholder="e.g., I run hot, no heels, need closed-toe shoes"
+              value={preferences}
+              onChange={(e) => setPreferences(e.target.value)}
+            />
+            <button className="submit-button" type="submit" disabled={locationLoading}>Generate my outfit plan <span aria-hidden="true">→</span></button>
           </form>
         </section>
 
         {planType && (
+          <section className="forecast-card" aria-label="Tomorrow's forecast">
+            <div className="forecast-heading">
+              <div><p className="plan-kicker">WEATHER CHECK</p><h2>Tomorrow's forecast</h2></div>
+              {forecastLoading
+                ? <span className="forecast-status">Checking forecast…</span>
+                : activeWeather && <span className="forecast-status">{weatherLabel}</span>}
+            </div>
+            {forecastLoading ? (
+              <p className="forecast-loading">Loading tomorrow's weather…</p>
+            ) : activeWeather ? (
+              <>
+                <div className="forecast-values">
+                  {inputSource === 'sample' && activeWeather.detail && <span>{activeWeather.detail}</span>}
+                  {weatherLines.map((line) => <span key={line}>{line}</span>)}
+                </div>
+                {recommendations.length > 0 && <ul className="forecast-recommendations">{recommendations.map((line) => <li key={line}>{line}</li>)}</ul>}
+              </>
+            ) : (
+              <p className="forecast-unavailable">Forecast unavailable</p>
+            )}
+          </section>
+        )}
+
+        {planType && (
           <section className="plan-card" aria-label="Your outfit plan">
             <div className="plan-topline">
-              <div className="step-number">02</div>
               <div><p className="plan-kicker">YOUR PLAN FOR TOMORROW</p><h2>{planTitle}</h2></div>
-              <div className="weather-pill"><span className="weather-dot" />{planType === 'class' ? '68°F · Mild · No rain' : planType === 'clash' ? '91°F · Hot · No rain' : planType === 'vague' ? '42°F morning · 70°F afternoon' : 'Weather not specified'}</div>
+              <div className="weather-pill"><span className="weather-dot" />{inputSource === 'sample' ? sampleWeather?.detail : forecast ? `${forecast.high}°F high · ${forecast.low}°F low` : forecastLoading ? 'Forecast loading' : 'Forecast unavailable'}</div>
             </div>
             {notice && <div className="notice" role="status">This prototype only has prewritten plans for a few example days. Try one of the example buttons.</div>}
             <div className={`plan-content ${editing ? 'is-editing' : ''}`} contentEditable={editing} suppressContentEditableWarning>
@@ -147,6 +315,13 @@ function Home() {
                   </ul>
                   <div className="assumptions"><span className="assumptions-label">ASSUMPTIONS</span><p className="assumption">I couldn't tell what these events require, so I assumed a general professional setting.</p></div>
                 </>
+              )}
+              {preferences.trim() && (
+                <div className="preferences-note">
+                  <strong>Your preferences (noted)</strong>
+                  <p>{preferences.trim()}</p>
+                  <small>In the full product, the AI would factor this into the plan. (Simulated in this prototype.)</small>
+                </div>
               )}
               <div className="safety-note">Posted safety requirements for any workshop or lab override these suggestions.</div>
             </div>
