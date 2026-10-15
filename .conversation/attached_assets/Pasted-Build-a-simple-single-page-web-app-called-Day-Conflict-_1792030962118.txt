@@ -1,0 +1,39 @@
+Build a simple single-page web app called "Day-Conflict Outfit Planner". Use plain HTML/CSS/JavaScript or a minimal Flask/Node setup. No database, no accounts, no external APIs, no API keys. This is a Wizard-of-Oz prototype, so all plans are prewritten.
+
+PAGE LAYOUT (one screen):
+1. Title, a one-line description, and a visible banner: "Prototype: plans shown here are simulated examples, not live AI output."
+2. A text input for "City" (default: South Bend, IN).
+3. A large textarea labeled "Paste tomorrow's events with times" with placeholder: "Workshop 10-12, Lenovo interview 2:00, career fair 4:30".
+4. Three "Try an example" buttons that fill the city and textarea:
+   - "Class-only day": City South Bend; "Class 10-11:15, Library 1-3". Weather: 68F, mild, no rain.
+   - "Clash day": City South Bend; "Workshop 10-12, Lenovo interview 2:00, career fair 4:30". Weather: 91F, hot, no rain.
+   - "Weather swing + vague event": City South Bend; "Class 9-10, meeting 1:00". Weather: 42F morning, 70F afternoon.
+5. A "Get my outfit plan" button.
+
+BEHAVIOR on submit:
+- If the events textarea is empty or whitespace, show a friendly error: "Please paste at least one event with a time." Do not show a plan.
+- Otherwise match the input by keywords (case-insensitive):
+  - contains workshop/shop/fab/lab AND (interview/sponsor/career fair) -> Clash plan
+  - contains "meeting" with no other recognizable event word -> Vague plan
+  - contains class/library/lecture -> Class-only plan
+  - anything else -> show a "Simulated prototype" notice: "This prototype only has prewritten plans for a few example days. Try one of the example buttons." Also show the generic plan below.
+  - Generic plan: base outfit is neutral business-casual layers with long pants; one assumption: "I couldn't tell what these events require, so I assumed a general professional setting." Low confidence.
+
+PLAN DISPLAY (card layout):
+- Weather line (hard-coded per scenario)
+- Base outfit
+- Bring / Swap / Layer suggestions, each with a one-line reason
+- Assumptions section; vague events marked with a "Low confidence" badge
+- A note: "Posted safety requirements for any workshop or lab override these suggestions."
+
+Scenario content:
+- Class-only: simple outfit (jeans/chinos, light top, comfortable shoes); no conflict flagged; say so.
+- Clash day: base outfit is lightweight long pants plus breathable top that works for the shop and looks professional; BRING a throwaway t-shirt to layer over during sanding; SWAP into a blazer/nicer top after the shop (no time to go home); wear closed-toe shoes that can pass for professional; note the heat (breathable fabrics, remove blazer between events). Flag the conflict: shop safety vs interview polish.
+- Vague event: layer for 42F to 70F (light jacket or cardigan you can remove); "meeting" flagged as Low confidence with the assumption "I assumed business casual since 'meeting' gives no detail. Edit if wrong."
+
+PLAN CONTROLS under each plan:
+- "Accept" -> shows "Plan accepted."
+- "Edit" -> makes the plan text editable in place (contenteditable) with a Save button.
+- "Reject" -> shows a text box "What should be different?" and a "Try a different approach" button that displays a message: "In the full product, the AI would regenerate the plan. (Simulated in this prototype.)"
+
+Keep styling clean and simple, mobile-friendly. Do not add anything else. Do not store any user input. Add a README.md with the product name and a placeholder section for tests and limitations.
