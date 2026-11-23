@@ -2,59 +2,61 @@
 
 A web app prototype that turns tomorrow's schedule and forecast into one practical outfit plan, including what to bring, swap, or layer when events have conflicting dress requirements.
 
-## What the First Working Slice Does
+**Intended user:** Grad students and early-career professionals whose day mixes hands-on settings (workshop, lab, fabrication) with professional ones (interviews, sponsor calls, career fairs) and who cannot go home to change.
 
-A user opens the page, confirms their city (defaults to South Bend, IN), pastes tomorrow's events with times (or picks a built-in example), and clicks **Generate my outfit plan**. The app then shows:
+## Links to every component
 
-- Tomorrow's weather
-- A base outfit organized by Head, Torso, Legs, and Shoes
-- Bring / swap / layer suggestions with a one-line reason for each
-- Assumptions, with vague events marked "Low confidence"
-- A reminder that posted shop or lab safety requirements override the suggestions
+| Component | Link |
+| --- | --- |
+| Running prototype (Replit) | https://day-conflict-outfit-planner.replit.app |
+| Demo video (Google Drive) | https://drive.google.com/file/d/1z6ZRmmN_oe735w_U6YhNbpCJXuMmnDi8/view?usp=sharing (view access granted to Emelia Hughes and Samuel Huang) |
+| Prototype code and assets | This repository (`artifacts/`, `lib/`, `scripts/`) |
+| Revision documentation: peer feedback, tests, risk response | [`revision.md`](./revision.md) |
+| AI-use disclosure | [`ai-use-disclosure.md`](./ai-use-disclosure.md) |
 
-The user can **Accept** the plan, **Edit** it in place, or **Reject** it and ask for a different approach.
+## Try the prototype
 
-## Try the Prototype
+Open the Replit link above. No account or setup is needed.
 
-Open: https://day-conflict-outfit-planner.replit.app
+1. Pick an example from the **Try an example** dropdown (these are prewritten and labeled "Simulated example"), **or** type your own events, such as `Lab 9-11, class 1:00, dinner with advisor 6:00`.
+2. Optionally add preferences (for example, "I run hot").
+3. Click **Generate my outfit plan**. Plans for your own events use a live AI model and take about 15–25 seconds.
+4. Review the plan, then **Accept**, **Edit**, or **Reject** it.
 
-1. Pick an example from the "Try an example" dropdown (or paste your own events, such as `Workshop 10-12, Lenovo interview 2:00`).
-2. Click **Generate my outfit plan**.
-3. Review the plan, then try Accept, Edit, or Reject.
+Use sample or made-up events; do not enter private information.
 
-No account, login, or setup is needed. Nothing the user enters is stored.
+## What changed in this revision
 
-## AI Behavior: Simulated
+1. Events the user types now get a plan from a live AI model (examples stay simulated and are labeled).
+2. A specific, usable plan replaced the generic "Comfortable, business casual" text in the vague-event example.
+3. A safety warning appears when preferences such as open shoes or loose clothing conflict with a workshop or lab event.
+4. Clarity fixes: audience statement, "weather is a lookup (not AI)" label, and a stale error message that now clears.
 
-**Intended AI role (future product):** An AI model will read messy, free-text event descriptions, infer what each event requires (setting, dress expectation, practical constraints like working in a shop), and reason across conflicts to generate one combined outfit plan with reasoning and flagged assumptions.
+Details, peer-feedback responses, and test results are in [`revision.md`](./revision.md).
 
-**What currently works:**
-- The page, the example dropdown, and the Accept / Edit / Reject controls
-- Input validation (an empty submission shows an error instead of a plan)
-- [KEEP IF LIVE WEATHER WORKS, otherwise DELETE: Live forecast for South Bend from the Open-Meteo API when the user types their own events]
-- A simple rule-based weather check (not AI): breathable fabrics when the high is above 85°F, an extra layer when the low is below 50°F, and a rain reminder when rain chance is above 40%
+## AI behavior: what is live, simulated, and planned
 
-**What is simulated (Wizard-of-Oz):**
-- **All outfit plans are prewritten.** The app matches keywords in the pasted text (such as "workshop" plus "interview") and displays a hard-coded plan. No AI model is called.
-- The example days use sample weather, labeled as such on the page.
-- Preferences text is displayed back to the user but not factored into the plan.
-- "Reject" and "Try a different approach" show a message explaining that the full product's AI would regenerate the plan.
-- Calendar and app sync are not built. Events must be pasted.
+**Intended AI role:** Read messy, free-text event descriptions, infer what each event requires, and reason across conflicts to generate one combined outfit plan with reasons and flagged assumptions.
 
-No API keys or secrets are used in this repository.
+| Feature | Status |
+| --- | --- |
+| Plan for events the user types | **Live AI** (a hosted AI model; output can vary and may be wrong) |
+| Plans for the three dropdown examples | **Simulated** (prewritten) |
+| Tomorrow's weather forecast | Live lookup by city, or sample data labeled "Sample weather for this example" (not AI) |
+| Weather tips (breathable fabrics, extra layer, rain reminder) | Simple rules (not AI) |
+| Safety warning for risky preferences | Keyword rule (not AI) |
+| Accept / Edit controls | Working |
+| Reject, then "Try a different approach" | Working (live AI regenerates the plan using the user's note) |
+| Calendar sync, morning or evening notifications, wardrobe photos, store links, multiple outfit options | **Planned**, not built |
 
-## Test Results
+No API keys or secrets are in this repository; the key is stored in Replit Secrets.
 
-| Test | Input or action | What happened | Pass, partial, or fail |
-| --- | --- | --- | --- |
-| Typical case | "Class-only day" example: `Class 10-11:15, Library 1-3`, mild weather | Showed a simple outfit, no conflict flagged, and said so. [CONFIRM] | [Pass] |
-| Challenge case | "Clash day" example: `Workshop 10-12, Lenovo interview 2:00, career fair 4:30`, hot weather | Flagged the shop-safety vs. interview-polish conflict. Plan used one pair of lightweight long pants all day, a nice top protected by a throwaway t-shirt while sanding, closed-toe shoes, and safety glasses and tied-back hair for the shop. [CONFIRM] | [Pass] |
-| Challenge case (vague event) | "Weather swing" example: `Class 9-10, meeting 1:00`, 42°F morning and 70°F afternoon | Suggested removable layers and marked "meeting" as Low confidence with a stated assumption. [CONFIRM] | [Pass] |
-| Invalid or empty case | Clicked Generate with the events box empty | Showed "Please paste at least one event with a time" and no plan. [CONFIRM] | [Pass] |
-| Unrecognized input | Typed `dentist 3pm` | Showed the "Simulated prototype" notice and a generic low-confidence plan. [CONFIRM] | [Pass/Partial] |
+## Test results
 
-## Known Limitations
+Five distinct cases plus a three-run repeat test of the live AI are documented in [`revision.md`](./revision.md#3-evaluation). Summary: Typical 2 (live AI), Challenge, Invalid/empty and Risk cases passed; Typical 1 (Class-only example) was partial because of a text-fragment bug, which was fixed and retested.
 
-1. **Plans are prewritten, not generated.** The app only handles a few kinds of days well. A pasted schedule outside those patterns gets a generic fallback plan, so it can't yet reason about arbitrary events. Next step: connect a live AI model, with the key stored in Replit Secrets.
-2. **Assumes the Zoom interview and does not verify shop rules.** The clash-day plan treats the interview as a Zoom call, so only the top changes, and the shop requirements (long pants, safety glasses, hair tied back) are typical examples, not checked against a specific shop. Posted requirements override the app. Next step: let the user mark events as in-person or virtual and enter their own shop rules.
-3. **No calendar sync, saved preferences, or timing logic.** Events must be pasted, preferences are only displayed back, and the app doesn't yet detect when back-to-back events leave no time to change. Next step: opt-in calendar connection and travel-time-aware conflict detection.
+## Known limitations
+
+1. **Live output varies and can be wrong.** In repeat runs the specific garments changed, and once the AI stated a preference the user never entered. Next step: test more inputs and constrain the output.
+2. **The app does not know a specific shop's rules or whether an event is in person or virtual.** It assumed an in-person dinner and recommended a blazer. Next step: let users mark events as virtual or in person and enter their own shop rules.
+3. **Slow and untested at scale.** Live plans take about 15–25 seconds, and only a few inputs, one city, and no phone or screen-reader testing were done. Next step: speed and broader testing.
